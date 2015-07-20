@@ -34,6 +34,7 @@
 		// Merging user options with the default values
 
 		var defaults = {
+			consistentSizing : false,
 			debug            : false,
 			maxFontPixels    : 40,
 			minFontPixels    : 4,
@@ -193,6 +194,8 @@
 
 		_debug('[TextFill] Start Debug');
 
+		var maximums = [];
+
 		this.each(function() {
 
 			// Contains the child element we will resize.
@@ -253,27 +256,43 @@
 			// 3. Actually resize the text!
 
 			if (Opts.widthOnly) {
-				ourText.css({
-					'font-size'  : fontSizeWidth,
-					'white-space': 'nowrap'
-				});
 
-				if (Opts.changeLineHeight)
-					ourText.parent().css(
-						'line-height',
-						(lineHeight * fontSizeWidth + 'px')
-					);
+				if (Opts.consistentSizing) {
+					maximums.push(fontSizeWidth);
+				} else {
+					ourText.css({
+						'font-size'  : fontSizeWidth,
+						'white-space': 'nowrap'
+					});
+
+					if (Opts.changeLineHeight)
+						ourText.parent().css(
+							'line-height',
+							(lineHeight * fontSizeWidth + 'px')
+						);
+				}
+
 			}
 			else {
+
 				var fontSizeFinal = Math.min(fontSizeHeight, fontSizeWidth);
 
-				ourText.css('font-size', fontSizeFinal);
+				//save the size
+				if (Opts.consistentSizing) {
 
-				if (Opts.changeLineHeight)
-					ourText.parent().css(
-						'line-height',
-						(lineHeight * fontSizeFinal) + 'px'
-					);
+					maximums.push(fontSizeFinal);
+
+				} else {
+					ourText.css('font-size', fontSizeFinal);
+
+					if (Opts.changeLineHeight)
+						ourText.parent().css(
+							'line-height',
+							(lineHeight * fontSizeFinal) + 'px'
+						);
+				}
+
+
 			}
 
 			_debug(
@@ -312,9 +331,19 @@
 			}
 		});
 
-		// Complete callback
-		if (Opts.complete)
-			Opts.complete(this);
+		if (Opts.consistentSizing) {
+			var maxSize = maximums.reduce(function(previousValue, currentValue){
+				return Math.max(previousValue,currentValue);
+			});
+			this.each(function() {
+
+				// Contains the child element we will resize.
+				// $(this) means the parent container
+				var ourText = $(Opts.innerTag + ':visible:first', this);
+				ourText.css('font-size', maxSize);
+
+			});
+		}
 
 		_debug('[TextFill] End Debug');
 		return this;
